@@ -146,6 +146,16 @@ namespace LingboORM
            }
           
        }
+        /// <summary>
+        /// 执行insert语句集合
+        /// </summary>
+        /// <param name="sqlList"></param>
+        /// <param name="strConn"></param>
+        /// <returns></returns>
+        internal static int ExecInsert(List<string> sqlList, string strConn)
+        {
+                return SqlHelper.ExecuteNonQuery(strConn, CommandType.Text, sqlList);
+        }
        /// <summary>
        /// 创建Update语句
        /// </summary>
@@ -155,7 +165,7 @@ namespace LingboORM
        /// <param name="obj"></param>
        /// <param name="strWhere"></param>
        /// <returns></returns>
-       internal static string CreateUpdate(string strTableName, List<string> FieldMapping, List<string> FieldValues,object obj,string strWhere)
+        internal static string CreateUpdate(string strTableName, List<string> FieldMapping, List<string> FieldValues,object obj,string strWhere)
        {
             //声明字段列表
             string[] listUpdateList = new string[FieldMapping.Count];
@@ -167,7 +177,20 @@ namespace LingboORM
 			}
            //集合转换成sql语句字符串
             string strUpdateText = string.Join(",", listUpdateList);
-            string strSql = "UPDATE " + strTableName + " SET " + strUpdateText + " WHERE " + strWhere;
+            string strSql = "";
+            if (strWhere != string.Empty)
+            {
+                 strSql = "UPDATE " + strTableName + " SET " + strUpdateText + " WHERE " + strWhere;
+            }
+            else
+            {
+                //获取主键键标识   
+                Type ty = obj.GetType();
+                string mapPr = ty.InvokeMember("GetMapping", BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, obj, new object[] { }).ToString();
+                string prim = mapPr.Split(',')[0];
+                string val = GetFieldValue(obj, prim, ty.GetProperty(prim).GetValue(obj).ToString());
+                strSql = "UPDATE " + strTableName + " SET " + strUpdateText + " WHERE " + prim+"="+val;
+            }
 
             return strSql;
        }
@@ -187,6 +210,16 @@ namespace LingboORM
            {
                return false;
            }
+       }
+       /// <summary>
+       /// 执行Update语句集合
+       /// </summary>
+       /// <param name="sqlList"></param>
+       /// <param name="strConn"></param>
+       /// <returns></returns>
+       internal static int ExecUpdate(List<string> sqlList, string strConn)
+       {
+           return SqlHelper.ExecuteNonQuery(strConn, CommandType.Text, sqlList);
        }
        /// <summary>
        /// 创建delete语句

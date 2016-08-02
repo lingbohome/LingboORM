@@ -183,7 +183,55 @@ namespace LingboORM
             }
             return;
         }
+        /// <summary>
+        /// 事务参数设置
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="connection"></param>
+        /// <param name="transaction"></param>
+        /// <param name="commandType"></param>
+        /// <param name="commandTextList"></param>
+        /// <param name="commandParameters"></param>
+        /// <param name="mustCloseConnection"></param>
+        private static void PrepareCommand(SqlCommand command, SqlConnection connection, SqlTransaction transaction, CommandType commandType, List<string> commandTextList, SqlParameter[] commandParameters, out bool mustCloseConnection)
+        {
+            if (command == null) throw new ArgumentNullException("command");
+            if (commandTextList == null || commandTextList.Count == 0) throw new ArgumentNullException("commandTextList");
 
+            // If the provided connection is not open, we will open it
+            if (connection.State != ConnectionState.Open)
+            {
+                mustCloseConnection = true;
+                connection.Open();
+            }
+            else
+            {
+                mustCloseConnection = false;
+            }
+
+            // Associate the connection with the command
+            command.Connection = connection;
+
+            // Set the command text (stored procedure name or SQL statement)
+           // command.CommandText = commandText;
+
+            // If we were provided a transaction, assign it
+            if (transaction != null)
+            {
+                if (transaction.Connection == null) throw new ArgumentException("The transaction was rollbacked or commited, please provide an open transaction.", "transaction");
+                command.Transaction = transaction;
+            }
+
+            // Set the command type
+            command.CommandType = commandType;
+
+            // Attach the command parameters if they are provided
+            if (commandParameters != null)
+            {
+                AttachParameters(command, commandParameters);
+            }
+            return;
+        }
         #endregion private utility methods & constructors
 
         #region ExecuteNonQuery
@@ -204,6 +252,17 @@ namespace LingboORM
         {
             // Pass through the call providing null for the set of SqlParameters
             return ExecuteNonQuery(connectionString, commandType, commandText, (SqlParameter[])null);
+        }
+        /// <summary>
+        /// 调用入口（事务）
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="commandType"></param>
+        /// <param name="commandTextList"></param>
+        /// <returns></returns>
+        public static int ExecuteNonQuery(string connectionString, CommandType commandType, List<string> commandTextList)
+        {
+            return ExecuteNonQuery(connectionString, commandType, commandTextList, (SqlParameter[])null);
         }
 
         /// <summary>
@@ -232,7 +291,27 @@ namespace LingboORM
                 return ExecuteNonQuery(connection, commandType, commandText, commandParameters);
             }
         }
+        /// <summary>
+        /// 准备sql集合
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="commandType"></param>
+        /// <param name="commandTextList"></param>
+        /// <param name="commandParameters"></param>
+        /// <returns></returns>
+        public static int ExecuteNonQuery(string connectionString, CommandType commandType, List<string> commandTextList, params SqlParameter[] commandParameters)
+        {
+            if (connectionString == null || connectionString.Length == 0) throw new ArgumentNullException("connectionString");
 
+            // Create & open a SqlConnection, and dispose of it after we are done
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+
+                // Call the overload that takes a connection in place of the connection string
+                return ExecuteNonQuery(connection, commandType, commandTextList, commandParameters);
+            }
+        }
         /// <summary>
         /// Execute a stored procedure via a SqlCommand (that returns no resultset) against the database specified in 
         /// the connection string using the provided parameter values.  This method will query the database to discover the parameters for the 
@@ -320,7 +399,44 @@ namespace LingboORM
                 connection.Close();
             return retval;
         }
+        /// <summary>
+        /// 事务执行
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="commandType"></param>
+        /// <param name="commandTextList"></param>
+        /// <param name="commandParameters"></param>
+        /// <returns></returns>
+        public static int ExecuteNonQuery(SqlConnection connection, CommandType commandType, List<string> commandTextList, params SqlParameter[] commandParameters)
+        {
+            if (connection == null) throw new ArgumentNullException("connection");
 
+            // Create a command and prepare it for execution
+            SqlCommand cmd = new SqlCommand();
+            bool mustCloseConnection = false;
+            SqlTransaction sqlTran = connection.BeginTransaction();
+            PrepareCommand(cmd, connection, sqlTran, commandType, commandTextList, commandParameters, out mustCloseConnection);
+            try
+            {
+                int count = 0;
+                foreach (var item in commandTextList)
+                {
+                        cmd.CommandText = item;
+                        count += cmd.ExecuteNonQuery();
+                }             
+                sqlTran.Commit();
+                cmd.Parameters.Clear();
+                if (mustCloseConnection)
+                    connection.Close();
+                return count;
+            }
+            catch
+            {
+                sqlTran.Rollback();
+                return 0;
+            }
+
+        }
         /// <summary>
         /// Execute a stored procedure via a SqlCommand (that returns no resultset) against the specified SqlConnection 
         /// using the provided parameter values.  This method will query the database to discover the parameters for the 

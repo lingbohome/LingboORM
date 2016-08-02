@@ -84,11 +84,30 @@ namespace LingboORM
            }
        }
        /// <summary>
-       /// 编辑实体
+       /// 事务批量添加实体
        /// </summary>
-       /// <param name="t"></param>
+       /// <param name="tList"></param>
        /// <returns></returns>
-       public bool Edit(T t, string strWhere)
+        public int Add(List<T> tList)
+        {
+            List<object> objList = null;
+            if (tList.Count > 0)
+            {
+                objList = new List<object>();
+                foreach (var item in tList)
+                {
+                    objList.Add(item);
+                }
+                return FhcBaseOrm.AddList(objList, conStr);
+            }
+            return 0;  
+        }
+        /// <summary>
+        /// 编辑实体
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public bool Edit(T t, string strWhere="")
        {
            if (FhcBaseOrm.Edit(t, conStr, strWhere))
            {
@@ -99,6 +118,25 @@ namespace LingboORM
                return false;
            }
        }
+       /// <summary>
+        /// 事务批量编辑实体
+       /// </summary>
+       /// <param name="tList"></param>
+       /// <returns></returns>
+        public int Edit(List<T> tList)
+        {
+            List<object> objList = null;
+            if (tList.Count > 0)
+            {
+                objList = new List<object>();
+                foreach (var item in tList)
+                {
+                    objList.Add(item);
+                }
+                return FhcBaseOrm.EditList(objList, conStr,"");
+            }
+            return 0;  
+        }
        /// <summary>
        /// 删除实体
        /// </summary>

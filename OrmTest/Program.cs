@@ -24,15 +24,42 @@ namespace OrmTest
            // ar.Edit(jj,"ArticID=2");
            // ar.Delete("ArticID=2");
             userdal bb = new userdal();
-            var vv = bb.GetPage("UserID", 1, 5, "deptid=4","userid desc");
-           //if (vv.Department != null)
-           //{
-           //    Console.WriteLine(vv.DeptID + vv.UserName + vv.UserID + vv.Department.DeptName);
-           //}
-           //else
-           //{
-           //    Console.WriteLine(vv.DeptID + vv.UserName + vv.UserID);
-           //}
+            List<UserInfo> li = new List<UserInfo>(0);
+            li.Add(new UserInfo
+            {
+                 Cellphone="123",
+                  UserID="aa1",
+                  UserName="我改了吗",
+                  UserType=1,
+                  Password="456"
+            });
+            li.Add(new UserInfo
+            {
+                Cellphone = "123456",
+                DeptID = 3,
+                UserID = "bb1",
+                UserName = "超哥",
+                UserType = 2,
+            });
+            li.Add(new UserInfo
+            {
+                Cellphone = "123456789",
+                DeptID = 3,
+                UserID = "cc1",
+                UserName = "傻子",
+                Password="gdggd",
+                 UserType = 2,
+            });
+            bool v = bb.Edit(new UserInfo { UserID="cc1",UserName="54554"}," Password='gdggd'");
+           Console.WriteLine(v);
+            //if (vv.Department != null)
+            //{
+            //    Console.WriteLine(vv.DeptID + vv.UserName + vv.UserID + vv.Department.DeptName);
+            //}
+            //else
+            //{
+            //    Console.WriteLine(vv.DeptID + vv.UserName + vv.UserID);
+            //}
             //tbUser tt = new tbUser();
             //tt.varName = "xixioo";
             //tt.varPassword = "vae";
@@ -47,11 +74,11 @@ namespace OrmTest
             ////tbUser li = u.GetModel("intID=20"); 
             ////Console.WriteLine(li.intID + "--" + li.varName+"--"+li.age+"--"+li.ddt);
             //List<tbUser> vv = u.GetList();
-            foreach (var item in vv)
-            {
-                Console.WriteLine(item.UserName+"--"+item.Department.DeptName);
+            //foreach (var item in vv)
+            //{
+            //    Console.WriteLine(item.UserName+"--"+item.Department.DeptName);
            
-            }
+            //}
            Console.ReadKey();
         }
     }
